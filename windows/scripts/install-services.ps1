@@ -1,0 +1,280 @@
+# ==============================================================================
+# Register Windows Services via NSSM (Zero-Reboot)
+# ==============================================================================
+
+$ErrorActionPreference = "Stop"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$BaseDir = Split-Path -Parent $ScriptDir
+$NssmExe = Join-Path $BaseDir "bin\nssm\win64\nssm.exe"
+
+if (!(Test-Path $NssmExe)) {
+    Write-Host "[ERROR] nssm.exe not found. Please run .\scripts\setup.ps1 first!" -ForegroundColor Red
+    exit 1
+}
+
+# Locate Python executable (ignoring WindowsApps redirector stub)
+$pyCmd = Get-Command python.exe -ErrorAction SilentlyContinue
+$PythonCmd = $null
+if ($pyCmd -and $pyCmd.Source -notmatch "WindowsApps") {
+    $PythonCmd = $pyCmd.Source
+}
+
+if (!$PythonCmd) {
+    $CommonPaths = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "C:\Program Files\Python313\python.exe",
+        "C:\Program Files\Python312\python.exe",
+        "C:\Program Files\Python311\python.exe",
+        "C:\Program Files\Python310\python.exe"
+    )
+    foreach ($p in $CommonPaths) {
+        if (Test-Path $p) {
+            $PythonCmd = $p
+            break
+        }
+    }
+}
+
+if (!$PythonCmd -and (Test-Path "$env:LOCALAPPDATA\Programs\Python")) {
+    $foundPy = Get-ChildItem "$env:LOCALAPPDATA\Programs\Python" -Filter "python.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($foundPy) {
+        $PythonCmd = $foundPy.FullName
+    }
+}
+
+if (!$PythonCmd) {
+    Write-Host "[ERROR] Real python.exe not found! Please run .\scripts\setup.ps1 first." -ForegroundColor Red
+    exit 1
+}
+Write-Host "[AGENT] Using Python for service: $PythonCmd" -ForegroundColor Cyan
+
+Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "  REGISTERING WINDOWS SERVICES VIA NSSM                  " -ForegroundColor Cyan
+Write-Host "==========================================================" -ForegroundColor Cyan
+
+function Register-Or-Update-Service {
+    param(
+        [string]$ServiceName,
+        [string]$AppPath,
+        [string]$AppParams,
+        [string]$AppDir,
+        [string]$StdoutPath,
+        [string]$StderrPath,
+        [string]$EnvExtra = $null
+    )
+
+    $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if (!$existing) {
+        Write-Host "[INSTALL] Registering Service: $ServiceName..." -ForegroundColor Yellow
+        if ($AppParams) {
+            & $NssmExe install $ServiceName $AppPath $AppParams | Out-Null
+        } else {
+            & $NssmExe install $ServiceName $AppPath | Out-Null
+        }
+    } else {
+        Write-Host "[UPDATE] Updating existing Service: $ServiceName..." -ForegroundColor Yellow
+    }
+
+    & $NssmExe set $ServiceName Application $AppPath | Out-Null
+    if ($AppParams) {
+        & $NssmExe set $ServiceName AppParameters $AppParams | Out-Null
+    } else {
+        & $NssmExe reset $ServiceName AppParameters | Out-Null
+    }
+    & $NssmExe set $ServiceName AppDirectory $AppDir | Out-Null
+    & $NssmExe set $ServiceName AppStdout $StdoutPath | Out-Null
+    & $NssmExe set $ServiceName AppStderr $StderrPath | Out-Null
+    & $NssmExe set $ServiceName AppRotateFiles 1 | Out-Null
+    & $NssmExe set $ServiceName AppRotateBytes 10485760 | Out-Null
+    if ($EnvExtra) {
+        & $NssmExe set $ServiceName AppEnvironmentExtra $EnvExtra | Out-Null
+    }
+    & $NssmExe set $ServiceName Start SERVICE_AUTO_START | Out-Null
+    Write-Host "  [OK] Service $ServiceName configured -> $AppPath" -ForegroundColor Green
+}
+
+# 1. Service: WindowsThermalAgent
+Register-Or-Update-Service `
+    -ServiceName "WindowsThermalAgent" `
+    -AppPath $PythonCmd `
+    -AppParams (Join-Path $BaseDir "agent.py") `
+    -AppDir $BaseDir `
+    -StdoutPath (Join-Path $BaseDir "logs\agent.log") `
+    -StderrPath (Join-Path $BaseDir "logs\agent.log") `
+    -EnvExtra "PYTHONIOENCODING=utf-8"
+
+# 2. Service: WindowsPrometheus
+$PromExe = Join-Path $BaseDir "bin\prometheus\prometheus.exe"
+$PromCfg = Join-Path $BaseDir "config\prometheus.yml"
+$PromData = Join-Path $BaseDir "data\prometheus"
+$PromArgs = "--config.file=`"$PromCfg`" --storage.tsdb.path=`"$PromData`" --storage.tsdb.retention.time=30d --web.listen-address=`"127.0.0.1:9090`" --web.enable-admin-api --web.enable-lifecycle"
+
+Register-Or-Update-Service `
+    -ServiceName "WindowsPrometheus" `
+    -AppPath $PromExe `
+    -AppParams $PromArgs `
+    -AppDir (Join-Path $BaseDir "bin\prometheus") `
+    -StdoutPath (Join-Path $BaseDir "logs\prometheus.log") `
+    -StderrPath (Join-Path $BaseDir "logs\prometheus.log")
+
+# 3. Synchronize Grafana Configuration & Dashboards
+$GrafHome = Join-Path $BaseDir "bin\grafana"
+$GrafProvDir = Join-Path $GrafHome "conf\provisioning"
+if (Test-Path $GrafProvDir) {
+    $LocalProvDir = Join-Path $BaseDir "config\grafana\provisioning"
+    Copy-Item -Path "$LocalProvDir\*" -Destination $GrafProvDir -Recurse -Force
+    Write-Host "[CONFIG] Synchronized Grafana Provisioning (Datasource UID 'Prometheus')." -ForegroundColor Green
+}
+
+$GrafDashDir = Join-Path $GrafHome "dashboards"
+New-Item -ItemType Directory -Force -Path $GrafDashDir | Out-Null
+Copy-Item -Path "$BaseDir\dashboards\*.json" -Destination $GrafDashDir -Force
+Write-Host "[CONFIG] Synchronized 4 Dashboards into bin\grafana\dashboards." -ForegroundColor Green
+
+$LocalCustomIni = Join-Path $BaseDir "config\grafana\conf\custom.ini"
+$GrafConfDir = Join-Path $GrafHome "conf"
+if (Test-Path $LocalCustomIni) {
+    Copy-Item -Path $LocalCustomIni -Destination "$GrafConfDir\custom.ini" -Force
+    Write-Host "[CONFIG] Applied custom.ini (disabled slow plugin downloads, bound 0.0.0.0:3000)." -ForegroundColor Green
+}
+
+# Clean stale SQLite database so Grafana recreates fresh with UID 'Prometheus'
+$GrafDbs = @(
+    (Join-Path $BaseDir "data\grafana\grafana.db"),
+    (Join-Path $GrafHome "data\grafana.db")
+)
+foreach ($db in $GrafDbs) {
+    if (Test-Path $db) {
+        try {
+            Stop-Service -Name "WindowsGrafana" -Force -ErrorAction SilentlyContinue
+            Remove-Item $db -Force -ErrorAction SilentlyContinue
+            Write-Host "[CONFIG] Re-initialized $db to bind UID 'Prometheus' cleanly." -ForegroundColor Green
+        } catch {}
+    }
+}
+
+# 4. Service: WindowsGrafana
+$GrafExe = Join-Path $GrafHome "bin\grafana.exe"
+$CustomIniPath = Join-Path $GrafConfDir "custom.ini"
+$GrafArgs = "server --homepath `"$GrafHome`" --config `"$CustomIniPath`""
+
+if (!(Test-Path $GrafExe)) {
+    # Fallback for older Grafana versions (< v13)
+    $LegacyGrafExe = Join-Path $GrafHome "bin\grafana-server.exe"
+    if (Test-Path $LegacyGrafExe) {
+        $GrafExe = $LegacyGrafExe
+        $GrafArgs = "--homepath `"$GrafHome`" --config `"$CustomIniPath`""
+    } else {
+        Write-Host "[ERROR] Neither grafana.exe nor grafana-server.exe found in bin\grafana\bin!" -ForegroundColor Red
+        exit 1
+    }
+}
+
+Register-Or-Update-Service `
+    -ServiceName "WindowsGrafana" `
+    -AppPath $GrafExe `
+    -AppParams $GrafArgs `
+    -AppDir $GrafHome `
+    -StdoutPath (Join-Path $BaseDir "logs\grafana.log") `
+    -StderrPath (Join-Path $BaseDir "logs\grafana.log")
+
+# 5. Service: WindowsLHM (Motherboard 12V/5V/3.3V voltages, CPU Package Power, GPU Hotspot)
+$LhmDir = Join-Path $BaseDir "bin\lhm"
+$LhmExe = Join-Path $LhmDir "LibreHardwareMonitor.exe"
+if (!(Test-Path $LhmExe)) {
+    Write-Host "[DOWNLOAD] Fetching LibreHardwareMonitor portable for 12V voltage tracking..." -ForegroundColor Yellow
+    $LhmUrl = "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/download/v0.9.3/LibreHardwareMonitor-net472.zip"
+    try {
+        $lhmRel = Invoke-RestMethod -Uri "https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/releases/latest" -Headers @{"User-Agent"="PowerShell"} -TimeoutSec 6
+        $zipAsset = $lhmRel.assets | Where-Object { $_.name -like "*.zip" } | Select-Object -First 1
+        if ($zipAsset -and $zipAsset.browser_download_url) {
+            $LhmUrl = $zipAsset.browser_download_url
+        }
+    } catch {}
+    $ZipPath = Join-Path $BaseDir "bin\lhm.zip"
+    try {
+        Invoke-WebRequest -Uri $LhmUrl -OutFile $ZipPath -UseBasicParsing -TimeoutSec 60
+        New-Item -ItemType Directory -Force -Path $LhmDir | Out-Null
+        Expand-Archive -Path $ZipPath -DestinationPath $LhmDir -Force
+        Remove-Item $ZipPath -Force -ErrorAction SilentlyContinue
+        Write-Host "[OK] LibreHardwareMonitor setup complete in bin\lhm\" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARN] Could not download LibreHardwareMonitor: $_" -ForegroundColor Yellow
+    }
+}
+
+if (Test-Path $LhmExe) {
+    Register-Or-Update-Service `
+        -ServiceName "WindowsLHM" `
+        -AppPath $LhmExe `
+        -AppParams "" `
+        -AppDir $LhmDir `
+        -StdoutPath (Join-Path $BaseDir "logs\lhm.log") `
+        -StderrPath (Join-Path $BaseDir "logs\lhm.log")
+}
+
+# 4. Tailscale PortProxy and Firewall Inbound Rules
+$tsIp = $null
+try {
+    $tsCmd = Get-Command tailscale.exe -ErrorAction SilentlyContinue
+    if ($tsCmd) {
+        $tsIp = (& $tsCmd.Source ip -4 2>$null).Trim()
+    }
+} catch {}
+if (!$tsIp) {
+    $tsAdapter = Get-NetIPAddress -InterfaceAlias "*tailscale*" -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($tsAdapter) {
+        $tsIp = $tsAdapter.IPAddress
+    }
+}
+
+if ($tsIp) {
+    Write-Host "[SECURITY] Configuring Tailscale-only portproxy on $tsIp for ports 9090, 9100..." -ForegroundColor Cyan
+    try {
+        netsh interface portproxy delete v4tov4 listenport=9090 listenaddress=$tsIp 2>$null | Out-Null
+        netsh interface portproxy delete v4tov4 listenport=9100 listenaddress=$tsIp 2>$null | Out-Null
+        netsh interface portproxy add v4tov4 listenport=9090 listenaddress=$tsIp connectport=9090 connectaddress=127.0.0.1 | Out-Null
+        netsh interface portproxy add v4tov4 listenport=9100 listenaddress=$tsIp connectport=9100 connectaddress=127.0.0.1 | Out-Null
+        Write-Host "  [OK] Tailscale portproxy active: $tsIp:9090 -> 127.0.0.1:9090" -ForegroundColor Green
+        Write-Host "  [OK] Tailscale portproxy active: $tsIp:9100 -> 127.0.0.1:9100" -ForegroundColor Green
+    } catch {
+        Write-Host "  [WARN] Could not configure netsh portproxy: $_" -ForegroundColor Yellow
+    }
+}
+
+try {
+    # Remove any old permissive firewall rules
+    Get-NetFirewallRule -DisplayName "Monitoring Stack*" -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
+
+    # Rule 1: Grafana 3000 (Allow Tailscale mesh and Local LAN)
+    New-NetFirewallRule `
+        -DisplayName "Monitoring Stack - Grafana Dashboard (Port 3000)" `
+        -Direction Inbound `
+        -LocalPort 3000 `
+        -Protocol TCP `
+        -Action Allow `
+        -RemoteAddress "100.64.0.0/10", "LocalSubnet" `
+        -Profile Any | Out-Null
+    Write-Host "[FIREWALL] Port 3000 allowed strictly for Tailscale (100.64.0.0/10) and LocalSubnet." -ForegroundColor Green
+
+    # Rule 2: Prometheus 9090 and Agent 9100 (Allow ONLY Tailscale mesh 100.64.0.0/10 - Blocked on LAN and Public)
+    New-NetFirewallRule `
+        -DisplayName "Monitoring Stack - Tailscale Private (Ports 9090, 9100)" `
+        -Direction Inbound `
+        -LocalPort 9090, 9100 `
+        -Protocol TCP `
+        -Action Allow `
+        -RemoteAddress "100.64.0.0/10" `
+        -Profile Any | Out-Null
+    Write-Host "[FIREWALL] Ports 9090 and 9100 restricted strictly to Tailscale (100.64.0.0/10) - Blocked on LAN and Public." -ForegroundColor Green
+} catch {
+    Write-Host "[INFO] Firewall rule configuration skipped (requires Admin rights)." -ForegroundColor Gray
+}
+
+Write-Host "==========================================================" -ForegroundColor Green
+Write-Host "  SUCCESSFULLY REGISTERED 3 WINDOWS SERVICES!            " -ForegroundColor Green
+Write-Host "  To start services, run: .\scripts\start-services.ps1   " -ForegroundColor Yellow
+Write-Host "==========================================================" -ForegroundColor Green

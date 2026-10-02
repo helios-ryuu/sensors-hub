@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: thermal-monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      # node-exporter chạy dưới dạng DaemonSet, scrape qua Service headless
+      # Prometheus tự discovery từng endpoint theo pod IP
+      - job_name: thermal-node-exporter
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [thermal-monitoring]
+        relabel_configs:
+          # Chỉ lấy pod có label app=thermal-node-exporter
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: thermal-node-exporter
+            action: keep
+          # Gắn nhãn node= để phân biệt từng iMac trong Grafana
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          # Port node-exporter = 9100
+          - source_labels: [__address__]
+            regex: (.+):(.+)
+            replacement: $1:9100
+            target_label: __address__

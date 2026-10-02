@@ -1,0 +1,138 @@
+name: sensors-hub
+
+services:
+  collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    image: sensors-collector:latest
+    container_name: sensors-collector
+    environment:
+      COLLECTOR_INTERVAL: ${COLLECTOR_INTERVAL:-15}
+      TEXTFILE_OUTPUT_PATH: /textfile/thermal_sensors.prom
+      MBPFAN_CONFIG_PATH: /etc/mbpfan.conf
+    volumes:
+      - /sys:/sys:ro
+      - ${MBPFAN_CONF_PATH:-/etc/mbpfan.conf}:/etc/mbpfan.conf:ro
+      - ${SENS_DATA_DIR:-./data}/textfile:/textfile
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  net-collector:
+    build:
+      context: ./net-collector
+      dockerfile: Dockerfile
+    image: sensors-net-collector:latest
+    container_name: sensors-net-collector
+    network_mode: host
+    pid: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+    volumes:
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock:ro
+      - /proc:/host/proc:ro
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+      - ${SENS_DATA_DIR:-./data}/textfile:/textfile
+    environment:
+      METRICS_OUTPUT_PATH: /textfile/network_metrics.prom
+      COLLECTOR_FAST_INTERVAL: ${NET_COLLECTOR_FAST_INTERVAL:-20}
+      COLLECTOR_SLOW_INTERVAL: ${NET_COLLECTOR_SLOW_INTERVAL:-120}
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: sensors-node-exporter
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+      - --collector.textfile.directory=/textfile
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|run)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+      - ${SENS_DATA_DIR:-./data}/textfile:/textfile:ro
+    networks:
+      - monitoring
+    security_opt:
+      - no-new-privileges=true
+    depends_on:
+      - collector
+      - net-collector
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sensors-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-15d}
+      - --storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-2GB}
+    ports:
+      - "${PROMETHEUS_BIND_IP:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${SENS_DATA_DIR:-./data}/prometheus:/prometheus
+    networks:
+      - monitoring
+    depends_on:
+      - node-exporter
+    security_opt:
+      - no-new-privileges=true
+    restart: unless-stopped
+
+  renderer:
+    image: grafana/grafana-image-renderer:latest
+    container_name: sensors-grafana-image-renderer
+    ports:
+      - "8081"
+    environment:
+      ENABLE_METRICS: "false"
+      AUTH_TOKEN: ${GRAFANA_RENDERER_TOKEN:-sensors-hub-renderer-secret-token-1511}
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sensors-grafana
+    ports:
+      - "${GRAFANA_BIND_IP:-0.0.0.0}:${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      GF_RENDERING_RENDERER_TOKEN: ${GRAFANA_RENDERER_TOKEN:-sensors-hub-renderer-secret-token-1511}
+      GF_AUTH_LOGIN_MAXIMUM_INACTIVE_LIFETIME_DURATION: 7d
+      GF_AUTH_LOGIN_MAXIMUM_LIFETIME_DURATION: 7d
+      GF_SECURITY_LOGIN_REMEMBER_DAYS: 7
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: "false"
+      GF_PLUGINS_DISABLE_PLUGINS: "elasticsearch,grafana-postgresql-datasource,grafana-pyroscope-datasource,influxdb,jaeger,loki,mssql,mysql,opentsdb,stackdriver,tempo,zipkin"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ${SENS_DATA_DIR:-./data}/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+      - renderer
+    security_opt:
+      - no-new-privileges=true
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    name: sensors-hub

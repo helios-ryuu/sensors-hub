@@ -1,0 +1,85 @@
+---
+# DaemonSet: node-exporter + textfile collector
+# Chạy trên node được gắn label: thermal=enabled
+# Trên node không có hardware iMac thì không schedule
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: thermal-node-exporter
+  namespace: thermal-monitoring
+  labels:
+    app: thermal-node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: thermal-node-exporter
+  template:
+    metadata:
+      labels:
+        app: thermal-node-exporter
+    spec:
+      # ============================================================
+      # NODE SELECTOR: chỉ chạy trên node được gắn label
+      # kubectl label node <NODE_NAME> thermal=enabled
+      # ============================================================
+      nodeSelector:
+        thermal: enabled
+      hostPID: false
+      hostNetwork: false
+      tolerations:
+        # Cho phép chạy trên control-plane nếu cần
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: node-exporter
+          image: prom/node-exporter:latest
+          args:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            - --path.rootfs=/host/root
+            - --collector.textfile.directory=/textfile
+            - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|run)($$|/)
+          ports:
+            - containerPort: 9100
+              name: http
+              hostPort: 9100    # Expose trực tiếp trên node IP
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: root
+              mountPath: /host/root
+              readOnly: true
+              mountPropagation: HostToContainer
+            - name: textfile
+              mountPath: /textfile
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 50Mi
+            limits:
+              cpu: 200m
+              memory: 200Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: root
+          hostPath:
+            path: /
+        - name: textfile
+          hostPath:
+            # Collector sẽ ghi file .prom vào đây trên host
+            path: /var/lib/thermal-monitoring/textfile
+            type: DirectoryOrCreate

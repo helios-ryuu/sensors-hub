@@ -1,0 +1,80 @@
+---
+# ConfigMap cho collector: các biến môi trường không nhạy cảm
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: collector-config
+  namespace: thermal-monitoring
+data:
+  COLLECTOR_INTERVAL: "15"
+  TEXTFILE_OUTPUT_PATH: /textfile/thermal_sensors.prom
+  MBPFAN_CONFIG_PATH: /etc/mbpfan.conf
+---
+# DaemonSet: thermal collector (sensors + mbpfan)
+# Chỉ chạy trên node có label: thermal=enabled
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: thermal-collector
+  namespace: thermal-monitoring
+  labels:
+    app: thermal-collector
+spec:
+  selector:
+    matchLabels:
+      app: thermal-collector
+  template:
+    metadata:
+      labels:
+        app: thermal-collector
+    spec:
+      nodeSelector:
+        thermal: enabled
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: collector
+          # Image build từ collector/Dockerfile (đã universal)
+          image: thermal-collector:latest
+          # Dùng imagePullPolicy: Never nếu build local trên từng node
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: collector-config
+          volumeMounts:
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: textfile
+              mountPath: /textfile
+            - name: mbpfan-conf
+              mountPath: /etc/mbpfan.conf
+              subPath: mbpfan.conf
+              readOnly: true
+          resources:
+            requests:
+              cpu: 20m
+              memory: 30Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: textfile
+          hostPath:
+            path: /var/lib/thermal-monitoring/textfile
+            type: DirectoryOrCreate
+        - name: mbpfan-conf
+          hostPath:
+            path: /etc/mbpfan.conf
+            # Nếu không có mbpfan trên node, file trống vẫn OK
+            type: FileOrCreate

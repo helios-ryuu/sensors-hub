@@ -1,0 +1,15 @@
+# Bí mật tạo trên máy triển khai, không lưu vào kho mã nguồn.
+secrets/*.txt
+.env
+
+# Dữ liệu cục bộ nếu đặt trong thư mục dự án
+data/
+.sens/
+
+# Bytecode sinh ra khi kiểm tra collector cục bộ.
+__pycache__/
+*.py[cod]
+
+# Thư mục k3s thực tế — chứa cấu hình cluster cụ thể (node name, secret thật).
+# Dùng k3s-example/ làm template, copy sang k3s/ rồi chỉnh trước khi apply.
+k3s/

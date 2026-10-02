@@ -1,0 +1,90 @@
+---
+# ConfigMap cho net-collector
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: net-collector-config
+  namespace: thermal-monitoring
+data:
+  METRICS_OUTPUT_PATH: /textfile/network_metrics.prom
+  COLLECTOR_FAST_INTERVAL: "20"
+  COLLECTOR_SLOW_INTERVAL: "120"
+---
+# DaemonSet: net-collector (network topology, NAT, iptables, Tailscale)
+# Yêu cầu: network_mode host + CAP_NET_ADMIN + SYS_PTRACE
+# Chỉ chạy trên node có label: thermal=enabled
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: thermal-net-collector
+  namespace: thermal-monitoring
+  labels:
+    app: thermal-net-collector
+spec:
+  selector:
+    matchLabels:
+      app: thermal-net-collector
+  template:
+    metadata:
+      labels:
+        app: thermal-net-collector
+    spec:
+      nodeSelector:
+        thermal: enabled
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      # Phải dùng hostNetwork để đọc được network interface thực của host
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: net-collector
+          image: thermal-net-collector:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: net-collector-config
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_PTRACE
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: textfile
+              mountPath: /textfile
+            - name: tailscale-sock
+              mountPath: /var/run/tailscale/tailscaled.sock
+              readOnly: true
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: resolv
+              mountPath: /etc/resolv.conf
+              readOnly: true
+          resources:
+            requests:
+              cpu: 30m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: textfile
+          hostPath:
+            path: /var/lib/thermal-monitoring/textfile
+            type: DirectoryOrCreate
+        - name: tailscale-sock
+          hostPath:
+            # Nếu không có Tailscale, pod sẽ vẫn start (subPath optional)
+            path: /var/run/tailscale/tailscaled.sock
+            type: Socket
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: resolv
+          hostPath:
+            path: /etc/resolv.conf

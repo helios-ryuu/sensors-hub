@@ -1,0 +1,3069 @@
+{
+  "editable": false,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Nhiệt độ & Quạt Phần cứng",
+      "tooltip": "Nhiệt độ phần cứng (CPU, GPU, NVMe) và tốc độ quạt",
+      "type": "link",
+      "url": "/d/windows-thermals"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Tài nguyên Hệ thống",
+      "tooltip": "Tài nguyên hệ thống (CPU, RAM, Pagefile, Disk I/O, Network)",
+      "type": "link",
+      "url": "/d/windows-system"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Chẩn đoán Sự cố & Sập nguồn",
+      "tooltip": "Hộp đen chẩn đoán sập nguồn & ghi dữ liệu sự cố Windows",
+      "type": "link",
+      "url": "/d/windows-crash-diagnostics"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Mạng & An ninh Bảo mật",
+      "tooltip": "Trạng thái mạng, độ trễ kép, rớt gói, và chẩn đoán hop sự cố spike",
+      "type": "link",
+      "url": "/d/windows-network"
+    }
+  ],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Nhận diện CGNAT từ nhà mạng ISP. Xanh lá = IP Công cộng Trực tiếp, Vàng = Phía sau dải mạng CGNAT (100.64.0.0/10).",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "text": "IP Công cộng Trực tiếp (Không CGNAT)"
+                },
+                "1": {
+                  "color": "yellow",
+                  "text": "Phía sau CGNAT Nhà mạng (100.64.0.0/10)"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "net_nat_is_cgnat",
+          "instant": true,
+          "legendFormat": "CGNAT",
+          "refId": "A"
+        }
+      ],
+      "title": "Trạng thái CGNAT (Nhà mạng)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Khả năng duyệt NAT cho kết nối P2P. Xanh lá = Cone NAT (Tối ưu P2P), Vàng = Symmetric NAT (Cần máy chủ Relay).",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "text": "Full-Cone / Giới hạn Cổng (Tối ưu P2P)"
+                },
+                "1": {
+                  "color": "yellow",
+                  "text": "Symmetric NAT (Cần máy chủ Relay)"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "net_nat_is_symmetric",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Kiểu NAT & Khả năng Xuyên NAT",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Phát hiện Router đa tầng qua traceroute. Xanh lá = Mạng 1 Lớp NAT (Tối ưu), Cam = Phát hiện nhiều router trung gian.",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "text": "Mạng 1 Lớp NAT (Tối ưu)"
+                },
+                "1": {
+                  "color": "orange",
+                  "text": "Phát hiện Lớp mạng Kép (Double NAT)"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "net_nat_is_double_nat",
+          "instant": true,
+          "legendFormat": "Double NAT",
+          "refId": "A"
+        }
+      ],
+      "title": "Phát hiện Lớp mạng Kép (Double NAT)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Trạng thái kết nối dịch vụ mạng riêng ảo Tailscale Mesh trên máy tính Windows.",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "text": "Tailscale Ngoại tuyến (Offline)"
+                },
+                "1": {
+                  "color": "green",
+                  "text": "Tailscale Trực tuyến (Online)"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "net_tailscale_status",
+          "instant": true,
+          "legendFormat": "Tailscale",
+          "refId": "A"
+        }
+      ],
+      "title": "Mạng ảo Tailscale Mesh VPN",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Địa chỉ IP, địa chỉ MAC phần cứng và tên card mạng kết nối tới router gateway.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name"
+      },
+      "targets": [
+        {
+          "expr": "net_gateway_info",
+          "instant": true,
+          "legendFormat": "{{gateway_ip}} • {{gateway_mac}} ({{interface}})",
+          "refId": "A"
+        }
+      ],
+      "title": "Router Cổng Mặc định (Default Gateway)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Địa chỉ IPv4 bên ngoài và tên nhà cung cấp dịch vụ Internet (ISP).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 10,
+        "x": 0,
+        "y": 4
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name"
+      },
+      "targets": [
+        {
+          "expr": "net_wan_info",
+          "instant": true,
+          "legendFormat": "{{public_ipv4}} • {{isp}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Địa chỉ IPv4 Công cộng & Nhà mạng ISP",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Địa chỉ IPv6 Global Unicast Address công cộng.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "purple",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 14,
+        "x": 10,
+        "y": 4
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name"
+      },
+      "targets": [
+        {
+          "expr": "net_wan_info",
+          "instant": true,
+          "legendFormat": "{{public_ipv6}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Địa chỉ IPv6 Công cộng",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 100,
+      "title": "Độ trễ Tầng Mạng ICMP (ICMP Ping Layer 3 - Đầy đủ Lịch sử)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Thời gian khứ hồi ICMP Ping tầng mạng Layer 3 đến toàn bộ dịch vụ và hạ tầng mạng.",
+      "fieldConfig": {
+        "defaults": {
+          "max": 200,
+          "min": 0,
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "orange",
+                "value": 130
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gateway"
+            },
+            "properties": [
+              {
+                "id": "max",
+                "value": 10
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 2
+                    },
+                    {
+                      "color": "red",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DNS"
+            },
+            "properties": [
+              {
+                "id": "max",
+                "value": 30
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 15
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 9
+      },
+      "id": 8,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "expr": "net_ping_latency_ms{service!=\"\", target!=\"internet\", protocol!=\"tcp\"}",
+          "instant": true,
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Đồng hồ Độ trễ ICMP Ping (Gateway / DNS / Dịch vụ)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Biểu đồ lịch sử độ trễ ping ICMP đầy đủ, bảo toàn toàn bộ dữ liệu 7 ngày qua và lịch sử đo dài hạn.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity"
+          },
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "orange",
+                "value": 130
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gateway"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DNS"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 8,
+        "y": 9
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "net_ping_latency_ms{service!=\"\", target!=\"internet\", protocol!=\"tcp\"}",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Lịch sử Độ trễ ICMP Ping (Toàn bộ Dữ liệu Lịch sử)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 105,
+      "title": "Độ trễ Bắt tay Ứng dụng TCP (TCP Handshake Layer 4 - Đo thực tế)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Thời gian hoàn tất bắt tay 3 bước TCP SYN-SYN/ACK tới các cổng ứng dụng thực tế (HTTPS 443, DNS 53, HTTP 80).",
+      "fieldConfig": {
+        "defaults": {
+          "max": 200,
+          "min": 0,
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "orange",
+                "value": 130
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gateway"
+            },
+            "properties": [
+              {
+                "id": "max",
+                "value": 10
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 2
+                    },
+                    {
+                      "color": "red",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DNS"
+            },
+            "properties": [
+              {
+                "id": "max",
+                "value": 30
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 15
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 17
+      },
+      "id": 23,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "expr": "net_ping_latency_ms{service!=\"\", target!=\"internet\", protocol=\"tcp\"}",
+          "instant": true,
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Đồng hồ Độ trễ Bắt tay TCP (Cổng 443 / 53 / 80)",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Biểu đồ độ trễ kết nối tầng ứng dụng. Miễn nhiễm với cơ chế dìm ICMP; phản ánh chính xác kết nối YouTube thực tế (~35ms).",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity"
+          },
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "orange",
+                "value": 130
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gateway"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DNS"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 8,
+        "y": 17
+      },
+      "id": 24,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "net_ping_latency_ms{service!=\"\", target!=\"internet\", protocol=\"tcp\"}",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Lịch sử Độ trễ Bắt tay TCP (Thời gian Kết nối Ứng dụng Thực)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 106,
+      "title": "Chất lượng Truyền tải, Định tuyến & Chẩn đoán Spike",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Theo dõi suy hao chất lượng truyền tải: tỷ lệ rớt gói (%) trên trục chính và biến thiên độ trễ (jitter ms) trên trục phụ.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Tỷ lệ Rớt gói (%)",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "gradientMode": "opacity"
+          },
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 15
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Jitter.*"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Biến thiên Trễ (ms)"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "net_ping_packet_loss_percent{service!=\"\", target!=\"internet\"}",
+          "legendFormat": "{{service}} Rớt gói %",
+          "refId": "A"
+        },
+        {
+          "expr": "net_ping_jitter_ms{service!=\"\", target!=\"internet\"}",
+          "legendFormat": "{{service}} Jitter (ms)",
+          "refId": "B"
+        }
+      ],
+      "title": "Lịch sử Tỷ lệ Rớt gói & Biến thiên Trễ (Jitter)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Địa chỉ IP phân giải động cho các dịch vụ được giám sát, kèm mã số định tuyến tự trị (ASN), tổ chức mạng ISP và quốc gia lưu trữ.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "asn"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Mã ASN"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "country"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Quốc gia"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "org"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Tổ chức / Nhà mạng"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "protocol"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Cổng / Giao thức"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "resolved_ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP Phân giải"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Dịch vụ"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "target"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Địa chỉ Đích"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "id": 21,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Dịch vụ"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "net_target_resolved_ip_info",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Bảng IP Phân giải & Định tuyến Dịch vụ",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "Value": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Chẩn đoán định tuyến tự động kích hoạt khi độ trễ vượt 150ms. Chỉ rõ router hop cụ thể gây ra hiện tượng xếp hàng nghẽn hoặc nhảy vọt độ trễ.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Dịch vụ"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "target"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Địa chỉ Đích"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "culprit_hop"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Thứ tự Hop Sự cố"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "culprit_ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP Router Sự cố"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "culprit_rtt_ms"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Độ trễ Hop (ms)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Tổng Số lần Spike"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 22,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Tổng Số lần Spike"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "net_latency_spike_culprit_hop",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "net_latency_spike_total",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Bảng Chẩn đoán Hop Sự cố Spike",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "target"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "Value #A": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 101,
+      "title": "Tổng quan Trạng thái Mạng & Tô-pô",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Phân bổ các giao diện mạng đang hoạt động theo loại: Vật lý (Ethernet), Wi-Fi, VPN (Tailscale), Cầu nối ảo.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 70,
+            "lineWidth": 0
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "physical"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wifi"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vpn"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "docker"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "k8s"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "virtual"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-gray",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 41
+      },
+      "id": 10,
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "expr": "count by (net_type) (net_interface_info)",
+          "instant": true,
+          "legendFormat": "{{net_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Phân bổ Phân loại Giao diện Mạng",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Chi tiết các card mạng, trạng thái hoạt động, MTU, địa chỉ MAC, IPv4 và subnet tương ứng.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "physical": {
+                        "color": "green",
+                        "text": "physical"
+                      },
+                      "wifi": {
+                        "color": "blue",
+                        "text": "wifi"
+                      },
+                      "vpn": {
+                        "color": "purple",
+                        "text": "vpn"
+                      },
+                      "docker": {
+                        "color": "orange",
+                        "text": "docker"
+                      },
+                      "k8s": {
+                        "color": "yellow",
+                        "text": "k8s"
+                      },
+                      "virtual": {
+                        "color": "semi-dark-gray",
+                        "text": "virtual"
+                      },
+                      "other": {
+                        "color": "gray",
+                        "text": "other"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Interface"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "UP": {
+                        "color": "green",
+                        "text": "UP"
+                      },
+                      "DOWN": {
+                        "color": "red",
+                        "text": "DOWN"
+                      },
+                      "UNKNOWN": {
+                        "color": "yellow",
+                        "text": "UNKNOWN"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Speed"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "1000 Mbps": {
+                        "color": "green",
+                        "text": "1000 Mbps (1G)"
+                      },
+                      "100 Mbps": {
+                        "color": "yellow",
+                        "text": "100 Mbps"
+                      },
+                      "N/A": {
+                        "color": "gray",
+                        "text": "Virtual/N/A"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duplex"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hardware MAC"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MTU"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 18,
+        "x": 6,
+        "y": 41
+      },
+      "id": 11,
+      "options": {
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Type"
+          },
+          {
+            "desc": false,
+            "displayName": "Interface"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "net_interface_info",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Giao diện Mạng & Lớp Mạng Phụ (Subnets)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "name": "Interface",
+              "state": "Status",
+              "mtu": "MTU",
+              "ips": "IP Subnets",
+              "net_type": "Type",
+              "speed": "Speed",
+              "duplex": "Duplex",
+              "mac": "Hardware MAC"
+            },
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "Value": true
+            },
+            "indexByName": {
+              "Type": 0,
+              "Interface": 1,
+              "Status": 2,
+              "Speed": 3,
+              "Duplex": 4,
+              "Hardware MAC": 5,
+              "MTU": 6,
+              "IP Subnets": 7
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 49
+      },
+      "id": 102,
+      "title": "Danh mục Thiết bị Mạng Hợp nhất (LAN & Tailscale)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Total active devices discovered across all networks (LAN + Tailscale).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 50
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "count(net_device_info) or vector(0)",
+          "instant": true,
+          "legendFormat": "Total Devices",
+          "refId": "A"
+        }
+      ],
+      "title": "Tổng Thiết bị Mạng",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Active devices discovered on the physical local LAN via ARP table.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 50
+      },
+      "id": 17,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "count(net_device_info{network=\"LAN\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "LAN Devices",
+          "refId": "A"
+        }
+      ],
+      "title": "Thiết bị Mạng LAN",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Peer nodes connected in the Tailscale private mesh network.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "purple",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 50
+      },
+      "id": 18,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "count(net_device_info{network=\"Tailscale\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "Tailscale Nodes",
+          "refId": "A"
+        }
+      ],
+      "title": "Nút Mạng Tailscale",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Currently active, reachable devices responding on the network.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 50
+      },
+      "id": 19,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "count(net_device_info{status=~\"reachable|online\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "Active Online",
+          "refId": "A"
+        }
+      ],
+      "title": "Đang Hoạt động / Online",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Deep device profiling combining ARP neighbors, Tailscale mesh, OUI MAC vendor analysis, DNS resolution, open port fingerprinting (AirPlay, SSH, HTTP, SMB, Cast) and link status.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Network"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 105
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "LAN": {
+                        "color": "green",
+                        "text": "LAN"
+                      },
+                      "Tailscale": {
+                        "color": "blue",
+                        "text": "Tailscale"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 115
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "online": {
+                        "color": "green",
+                        "text": "Online"
+                      },
+                      "reachable": {
+                        "color": "green",
+                        "text": "Reachable"
+                      },
+                      "offline": {
+                        "color": "red",
+                        "text": "Offline"
+                      },
+                      "stale": {
+                        "color": "yellow",
+                        "text": "Stale"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IP Address"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 145
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 210
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device Profile"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "Router / Gateway": {
+                        "color": "blue",
+                        "text": "Router / Gateway"
+                      },
+                      "Apple Device (AirPlay/iOS)": {
+                        "color": "green",
+                        "text": "Apple Device (AirPlay)"
+                      },
+                      "Apple Device (Mac/iPhone)": {
+                        "color": "green",
+                        "text": "Apple Device"
+                      },
+                      "Smart TV / Cast Device": {
+                        "color": "purple",
+                        "text": "Smart TV / Cast"
+                      },
+                      "File Server / Windows PC": {
+                        "color": "orange",
+                        "text": "File Server / PC"
+                      },
+                      "Linux Server / Host": {
+                        "color": "purple",
+                        "text": "Linux Server"
+                      },
+                      "Mobile Client (Private Wi-Fi)": {
+                        "color": "orange",
+                        "text": "Mobile (Private MAC)"
+                      },
+                      "Smart Home / IoT Device": {
+                        "color": "yellow",
+                        "text": "Smart Home / IoT"
+                      },
+                      "Web Appliance / Server": {
+                        "color": "blue",
+                        "text": "Web Appliance"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "pattern": "^Tailscale.*",
+                      "result": {
+                        "color": "purple"
+                      }
+                    },
+                    "type": "regex"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Detected Services"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 175
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "ICMP Only": {
+                        "color": "gray",
+                        "text": "ICMP Ping Only"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hardware Vendor"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "Apple Inc.": {
+                        "color": "green",
+                        "text": "Apple Inc."
+                      },
+                      "ZTE / ISP Gateway": {
+                        "color": "blue",
+                        "text": "ZTE / ISP Gateway"
+                      },
+                      "Private Wi-Fi (Apple/Android)": {
+                        "color": "orange",
+                        "text": "Private Wi-Fi (Apple/Android)"
+                      },
+                      "Intel Corp": {
+                        "color": "blue",
+                        "text": "Intel Corp"
+                      },
+                      "Samsung": {
+                        "color": "blue",
+                        "text": "Samsung"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Identifier (MAC / OS)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 155
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Link Type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "direct": {
+                        "color": "green",
+                        "text": "direct"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 54
+      },
+      "id": 13,
+      "options": {
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Network"
+          },
+          {
+            "desc": false,
+            "displayName": "IP Address"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "net_device_info",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Danh sách Thiết bị trong Mạng (LAN + Tailscale)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "hostname": "Tên thiết bị (Host)",
+              "ip": "Địa chỉ IP",
+              "mac": "Địa chỉ MAC",
+              "vendor": "Nhà sản xuất / Card",
+              "network": "Phân vùng Mạng",
+              "os": "Hệ điều hành",
+              "status": "Trạng thái",
+              "latency": "Độ trễ (Ping)"
+            },
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "Value": true
+            },
+            "indexByName": {
+              "Network": 0,
+              "Status": 1,
+              "IP Address": 2,
+              "Device Name": 3,
+              "Device Profile": 4,
+              "Detected Services": 5,
+              "Hardware Vendor": 6,
+              "Identifier (MAC / OS)": 7,
+              "Link Type": 8
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 65
+      },
+      "id": 103,
+      "title": "Cổng Dịch vụ & Kết nối Đang Hoạt động",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Listening ports categorized by security exposure. Red = Public / LAN (0.0.0.0), Green = Tailscale Only, Blue = Localhost Only.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Port"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Protocol"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "tcp": {
+                        "color": "blue",
+                        "text": "TCP"
+                      },
+                      "udp": {
+                        "color": "orange",
+                        "text": "UDP"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bind IP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Exposure"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 165
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "Public / LAN": {
+                        "color": "red",
+                        "text": "Public / LAN"
+                      },
+                      "Tailscale Only": {
+                        "color": "green",
+                        "text": "Tailscale Only"
+                      },
+                      "Localhost Only": {
+                        "color": "blue",
+                        "text": "Localhost Only"
+                      },
+                      "Specific LAN": {
+                        "color": "orange",
+                        "text": "Specific LAN"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 13,
+        "x": 0,
+        "y": 66
+      },
+      "id": 14,
+      "options": {
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Exposure"
+          },
+          {
+            "desc": false,
+            "displayName": "Port"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "net_listening_port_info",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Cổng Dịch vụ Đang Mở (Listening Ports)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "exposure": "Phạm vi Lắng nghe",
+              "port": "Cổng (Port)",
+              "process": "Tiến trình (Process)",
+              "proto": "Giao thức"
+            },
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "Value": true
+            },
+            "indexByName": {
+              "Exposure": 0,
+              "Port": 1,
+              "Protocol": 2,
+              "Bind IP": 3,
+              "Service / Process": 4
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Active established connections communicating with services on this iMac.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Proto"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "tcp": {
+                        "color": "blue",
+                        "text": "TCP"
+                      },
+                      "udp": {
+                        "color": "orange",
+                        "text": "UDP"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Local Port"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Remote IP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 210
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Remote Port"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 135
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "ESTABLISHED": {
+                        "color": "green",
+                        "text": "ESTABLISHED"
+                      },
+                      "CLOSE_WAIT": {
+                        "color": "yellow",
+                        "text": "CLOSE_WAIT"
+                      },
+                      "TIME_WAIT": {
+                        "color": "orange",
+                        "text": "TIME_WAIT"
+                      },
+                      "FIN_WAIT": {
+                        "color": "red",
+                        "text": "FIN_WAIT"
+                      },
+                      "LAST_ACK": {
+                        "color": "orange",
+                        "text": "LAST_ACK"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 11,
+        "x": 13,
+        "y": 66
+      },
+      "id": 15,
+      "options": {
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Local Port"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "net_active_connection_info",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Kết nối TCP Đang Hoạt động (Established Connections)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "local_addr": "Địa chỉ Nội bộ",
+              "process": "Tiến trình (Process)",
+              "proto": "Giao thức",
+              "remote_addr": "Địa chỉ Đích (Remote)"
+            },
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "Value": true
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 75
+      },
+      "id": 104,
+      "title": "Tường lửa & Lọc Lưu lượng Mạng",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Active iptables packet filtering rules. Chain color: INPUT=blue, OUTPUT=green, FORWARD=orange. Action: green=ACCEPT, red=DROP/REJECT.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Chain"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-text"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "INPUT": {
+                        "color": "blue",
+                        "text": "INPUT"
+                      },
+                      "OUTPUT": {
+                        "color": "green",
+                        "text": "OUTPUT"
+                      },
+                      "FORWARD": {
+                        "color": "orange",
+                        "text": "FORWARD"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Action"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "ACCEPT": {
+                        "color": "green",
+                        "text": "ACCEPT"
+                      },
+                      "DROP": {
+                        "color": "red",
+                        "text": "DROP"
+                      },
+                      "REJECT": {
+                        "color": "red",
+                        "text": "REJECT"
+                      },
+                      "RETURN": {
+                        "color": "blue",
+                        "text": "RETURN"
+                      },
+                      "LOG": {
+                        "color": "yellow",
+                        "text": "LOG"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Proto"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Packets"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bytes"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 76
+      },
+      "id": 16,
+      "options": {
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Chain"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "net_security_setting",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Cấu hình Tường lửa Windows (Windows Firewall Profiles)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "setting": true,
+              "Value": true
+            },
+            "renameByName": {
+              "profile": "Hồ sơ Tường lửa (Profile)",
+              "status": "Trạng thái Bảo vệ"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 41,
+  "tags": [
+    "network",
+    "security",
+    "tailscale",
+    "imac"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Windows - Mạng & An ninh Bảo mật",
+  "uid": "windows-network",
+  "version": 5
+}
