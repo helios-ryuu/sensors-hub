@@ -39,7 +39,7 @@ Host Network & Hardware (/proc, /sys, /var/run/tailscale/tailscaled.sock, iptabl
 │             └───────────┬────────────┘                │
 │                         ▼                             │
 │             ┌───────────────────────┐                 │
-│             │    thermal-grafana    │                 │
+│             │    sensors-grafana    │                 │
 │             │     (4 Dashboards)    │                 │
 │             └───────────┬───────────┘                 │
 └─────────────────────────┼─────────────────────────────┘
@@ -88,7 +88,7 @@ Host Network & Hardware (/proc, /sys, /var/run/tailscale/tailscaled.sock, iptabl
 | `GRAFANA_PORT` | `3000` | Port truy cập Grafana |
 | `PROMETHEUS_BIND_IP`| `127.0.0.1` | IP publish của Prometheus |
 | `PROMETHEUS_PORT` | `9090` | Port truy cập Prometheus |
-| `COLLECTOR_INTERVAL`| `10` | Chu kỳ thu thập cảm biến của thermal collector (giây) |
+| `COLLECTOR_INTERVAL`| `10` | Chu kỳ thu thập cảm biến của sensors collector (giây) |
 | `NET_COLLECTOR_FAST_INTERVAL`| `15` | Chu kỳ thu thập nhanh của net-collector (giây) |
 | `NET_COLLECTOR_SLOW_INTERVAL`| `120` | Chu kỳ kiểm tra NAT/STUN/Traceroute của net-collector (giây) |
 | `PROMETHEUS_RETENTION_TIME` | `15d` | Thời gian lưu trữ dữ liệu metric |

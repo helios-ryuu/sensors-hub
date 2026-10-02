@@ -13,7 +13,7 @@ Mở terminal PowerShell (Run as Administrator) trên máy Windows và thực hi
 
 ### Bước 1: Cài đặt thư viện Python
 ```powershell
-cd thermal-sensors\windows
+cd sensors-hub\windows
 python -m pip install -r requirements.txt
 ```
 

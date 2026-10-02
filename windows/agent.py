@@ -65,7 +65,7 @@ LATENCY_TARGETS = [
 SPIKE_THRESHOLD_MS = float(os.environ.get("SPIKE_THRESHOLD_MS", "150.0"))
 SPIKE_LOG_DIR = os.environ.get(
     "SPIKE_LOG_DIR",
-    os.path.join(tempfile.gettempdir(), "thermal-monitoring", "spikes")
+    os.path.join(tempfile.gettempdir(), "sensors-hub/spikes")
 )
 
 KNOWN_BUGCHECKS = {
@@ -538,8 +538,8 @@ def collect_motherboard_and_cpu_power():
         os.path.join(cur_dir, "bin", "lhm", "LibreHardwareMonitorLib.dll"),
         os.path.join(os.path.dirname(cur_dir), "windows", "bin", "lhm", "LibreHardwareMonitorLib.dll"),
         os.path.join(os.path.dirname(cur_dir), "bin", "lhm", "LibreHardwareMonitorLib.dll"),
-        r"D:\thermal-sensors\windows\bin\lhm\LibreHardwareMonitorLib.dll",
-        r"C:\thermal-sensors\windows\bin\lhm\LibreHardwareMonitorLib.dll",
+        r"D:\sensors-hub\windows\bin\lhm\LibreHardwareMonitorLib.dll",
+        r"C:\sensors-hub\windows\bin\lhm\LibreHardwareMonitorLib.dll",
         os.path.join(cur_dir, "bin", "lhm", "OpenHardwareMonitorLib.dll"),
     ]
     lhm_dll = None

@@ -34,7 +34,7 @@ Host Network & Hardware (/proc, /sys, /var/run/tailscale/tailscaled.sock, iptabl
 │             └───────────┬────────────┘                │
 │                         ▼                             │
 │             ┌───────────────────────┐                 │
-│             │    thermal-grafana    │                 │
+│             │    sensors-grafana    │                 │
 │             │     (4 Dashboards)    │                 │
 │             └───────────┬───────────┘                 │
 └─────────────────────────┼─────────────────────────────┘
@@ -101,7 +101,7 @@ Script sẽ tự động:
 ```bash
 docker compose ps
 ```
-Cả 5 container (`sensors-collector`, `sensors-net-collector`, `sensors-node-exporter`, `sensors-prometheus`, `thermal-grafana`) phải ở trạng thái `Up`.
+Cả 5 container (`sensors-collector`, `sensors-net-collector`, `sensors-node-exporter`, `sensors-prometheus`, `sensors-grafana`) phải ở trạng thái `Up`.
 
 ### 4.2. Kiểm tra Collector Logs
 ```bash
